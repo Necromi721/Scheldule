@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Звонки и расписание</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a90d9" id="themeColorMeta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Звонки">
+<style>
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :root {
+    --accent: #4a90d9;
+    --accent-deep: #2a5c99;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --card-soft: #eaf4fc;
+    --text: #1a2a3a;
+    --text-soft: #6a7a8a;
+    --shadow: rgba(74,144,217,0.15);
+  }
+
+  body.dark {
+    --bg: #14181f;
+    --card: #1f2530;
+    --card-soft: #283040;
+    --text: #e8eef5;
+    --text-soft: #8a98a8;
+    --shadow: rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    padding-bottom: 40px;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ============================================
+     ПАНЕЛЬ НАСТРОЕК
+     ============================================ */
+  .settings {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--card);
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: transform 0.2s, background 0.2s;
+    color: var(--text);
+  }
+  .btn-icon:hover {
+    transform: scale(1.08);
+    background: var(--card-soft);
+  }
+  .btn-icon:active {
+    transform: scale(0.95);
+  }
+
+  .palette {
+    position: fixed;
+    top: 66px;
+    right: 14px;
+    z-index: 100;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 8px 24px var(--shadow);
+    display: none;
+    grid-template-columns: repeat(5, 32px);
+    gap: 8px;
+    transition: background 0.3s;
+  }
+  .palette.open { display: grid; }
+
+  .color-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.active { border-color: var(--text); }
+
+  /* ============================================
+     ОСНОВНОЙ ИНТЕРФЕЙС
+     ============================================ */
+  header {
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color: #fff;
+    padding: 24px 20px 28px;
+    text-align: center;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 4px 16px var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    transition: background 0.3s;
+  }
+  .clock {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .date {
+    font-size: 15px;
+    opacity: 0.85;
+    margin-top: 6px;
+  }
+  .next {
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 12px;
+    font-size: 15px;
+    backdrop-filter: blur(8px);
+  }
+  .next b {
+    font-size: 17px;
+  }
+
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs label {
+    flex: 0 0 auto;
+    padding: 10px 18px;
+    background: var(--card);
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .tabs input { display: none; }
+  .tabs input:checked + label {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent-deep);
+  }
+
+  .day { display: none; }
+
+  .lesson {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+  }
+  .lesson .num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--card-soft);
+    color: var(--accent-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  body.dark .lesson .num { color: var(--accent); }
+  .lesson .info { flex: 1; min-width: 0; }
+  .lesson .subject {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+  .lesson .time {
+    font-size: 13px;
+    color: var(--text-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lesson.now {
+    border-left-color: var(--accent);
+    background: linear-gradient(90deg, var(--card-soft), var(--card) 40%);
+    box-shadow: 0 4px 16px var(--shadow);
+  }
+  .lesson.now .num {
+    background: var(--accent);
+    color: #fff;
+  }
+  .lesson.now .subject::after {
+    content: ' · сейчас';
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .lesson.past { opacity: 0.45; }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-soft);
+    font-style: italic;
+  }
+
+  .offline-note {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  @media (max-width: 480px) {
+    .clock { font-size: 34px; }
+    .lesson { padding: 14px 14px; }
+    .lesson .subject { font-size: 15px; }
+  }
+
+  /* ============================================
+     МОДАЛЬНОЕ ОКНО ГРУПП
+     ============================================ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    color: var(--text);
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .modal h2 {
+    font-size: 26px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .modal > p {
+    color: var(--text-soft);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .group-section {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .group-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .group-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .group-btn {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid var(--card-soft);
+    background: var(--card);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .group-btn:hover {
+    border-color: var(--accent);
+  }
+  .group-btn.selected {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent-deep);
+  }
+
+  .modal-save {
+    width: 100%;
+    padding: 16px;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .modal-save:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .modal-save:not(:disabled):hover {
+    background: var(--accent-deep);
+  }
+
+  /* ============================================
+     КАЛЬКУЛЯТОР ОЦЕНОК
+     ============================================ */
+  .calc-display {
+    text-align: center;
+    padding: 20px;
+    background: var(--card-soft);
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+  .calc-avg {
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .calc-label {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .calc-keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .calc-key {
+    padding: 20px 10px;
+    border-radius: 14px;
+    border: 2px solid var(--card-soft);
+    background: var(--card);
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .calc-key:hover {
+    border-color: var(--accent);
+    background: var(--card-soft);
+  }
+  .calc-key:active {
+    transform: scale(0.95);
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .calc-history {
+    min-height: 40px;
+    padding: 12px 16px;
+    background: var(--card-soft);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--text-soft);
+    margin-bottom: 14px;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .calc-history .grade {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 8px;
+    margin: 2px;
+    font-weight: 600;
+  }
+
+  .calc-clear {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid var(--card-soft);
+    background: transparent;
+    color: var(--text-soft);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    margin-bottom: 8px;
+  }
+  .calc-clear:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+</style>
+</head>
+<body>
+
+<div class="settings">
+  <button class="btn-icon" id="calcBtn" title="Оценки">🧮</button>
+  <button class="btn-icon" id="groupBtn" title="Группа">👥</button>
+  <button class="btn-icon" id="themeBtn" title="Тема">🌙</button>
+  <button class="btn-icon" id="paletteBtn" title="Цвет">🎨</button>
+</div>
+
+<div class="palette" id="palette">
+  <div class="color-dot" data-accent="#4a90d9" data-deep="#2a5c99" style="background:#4a90d9"></div>
+  <div class="color-dot" data-accent="#e85d3a" data-deep="#b83a1c" style="background:#e85d3a"></div>
+  <div class="color-dot" data-accent="#7a4a2a" data-deep="#4a2a15" style="background:#7a4a2a"></div>
+  <div class="color-dot" data-accent="#4a9e5c" data-deep="#2c6b3a" style="background:#4a9e5c"></div>
+  <div class="color-dot" data-accent="#8b5cf6" data-deep="#6d3fd6" style="background:#8b5cf6"></div>
+  <div class="color-dot" data-accent="#ec4899" data-deep="#be185d" style="background:#ec4899"></div>
+  <div class="color-dot" data-accent="#f5a623" data-deep="#c47a00" style="background:#f5a623"></div>
+  <div class="color-dot" data-accent="#14b8a6" data-deep="#0d9488" style="background:#14b8a6"></div>
+  <div class="color-dot" data-accent="#64748b" data-deep="#334155" style="background:#64748b"></div>
+  <div class="color-dot" data-accent="#ef4444" data-deep="#b91c1c" style="background:#ef4444"></div>
+</div>
+
+<header>
+  <div class="clock" id="clock">--:--:--</div>
+  <div class="date" id="date">Загрузка…</div>
+  <div class="next" id="next">—</div>
+</header>
+
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div id="content"></div>
+  <div class="offline-note">
+    Работает без интернета. Добавь на главный экран — будет как приложение.
+  </div>
+</main>
+
+<!-- МОДАЛЬНОЕ ОКНО ГРУПП -->
+<div id="groupModal" class="modal-overlay">
+  <div class="modal">
+    <h2>Привет! 👋</h2>
+    <p>Выбери свои группы, чтобы видеть правильные уроки.</p>
+
+    <div class="group-section">
+      <div class="group-label">Английский язык</div>
+      <div class="group-buttons" data-type="english">
+        <button class="group-btn" data-value="1">Эллада Харлампьевна</button>
+        <button class="group-btn" data-value="2">Фируза Фаридовна</button>
+      </div>
+    </div>
+
+    <div class="group-section">
+      <div class="group-label">Родной / Татарский</div>
+      <div class="group-buttons" data-type="native">
+        <button class="group-btn" data-value="1">Родной</button>
+        <button class="group-btn" data-value="2">Татарский</button>
+      </div>
+    </div>
+
+    <button id="groupSave" class="modal-save" disabled>Готово</button>
+  </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО КАЛЬКУЛЯТОРА -->
+<div id="calcModal" class="modal-overlay">
+  <div class="modal">
+    <h2>Средний балл 🧮</h2>
+    <p>Нажимай на оценки — считается автоматически.</p>
+
+    <div class="calc-display">
+      <div class="calc-avg" id="calcAvg">—</div>
+      <div class="calc-label">средний балл</div>
+    </div>
+
+    <div class="calc-keys">
+      <button class="calc-key" data-grade="5">5</button>
+      <button class="calc-key" data-grade="4">4</button>
+      <button class="calc-key" data-grade="3">3</button>
+      <button class="calc-key" data-grade="2">2</button>
+    </div>
+
+    <div class="calc-history" id="calcHistory">Оценок пока нет</div>
+
+    <button class="calc-clear" id="calcClear">Очистить</button>
+    <button class="modal-save" id="calcClose">Готово</button>
+  </div>
+</div>
+
+<script src="schedule.js"></script>
+
+<script>
+  const DAYS = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  const SHORT = ['Пн','Вт','Ср','Чт','Пт','Сб'];
+
+  function getTodayIndex() {
+    const d = new Date().getDay();
+    if (d === 0) return 0;
+    return d - 1;
+  }
+
+  const userGroups = {
+    english: localStorage.getItem('group-english') || null,
+    native: localStorage.getItem('group-native') || null
+  };
+
+  function getLessonVariant(lesson) {
+    if (lesson.groups && lesson.groupType) {
+      const grp = userGroups[lesson.groupType];
+      if (grp && lesson.groups[grp]) return lesson.groups[grp];
+      return lesson.groups['1'] || Object.values(lesson.groups)[0];
+    }
+    return lesson;
+  }
+
+  const tabsEl = document.getElementById('tabs');
+  const contentEl = document.getElementById('content');
+
+  DAYS.forEach((day, i) => {
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'day';
+    input.id = 'day-' + i;
+    if (i === getTodayIndex()) input.checked = true;
+
+    const label = document.createElement('label');
+    label.htmlFor = 'day-' + i;
+    label.textContent = SHORT[i];
+
+    tabsEl.appendChild(input);
+    tabsEl.appendChild(label);
+
+    const block = document.createElement('div');
+    block.className = 'day';
+    block.id = 'block-' + i;
+
+    const dayData = SCHEDULE[day] || { bells: [], lessons: [] };
+    const lessons = dayData.lessons;
+    const bells = dayData.bells;
+
+    if (lessons.length === 0) {
+      block.innerHTML = '<div class="empty">Уроков нет</div>';
+    } else {
+      lessons.forEach((lesson, idx) => {
+        const time = bells[idx] || '—';
+        const variant = getLessonVariant(lesson);
+        const subject = variant.subject || '—';
+
+        const item = document.createElement('div');
+        item.className = 'lesson';
+        item.dataset.index = idx;
+
+        item.innerHTML = `
+          <div class="num">${idx + 1}</div>
+          <div class="info">
+            <div class="subject">${subject}</div>
+            <div class="time">${time.replace('-', '–')}</div>
+          </div>
+        `;
+        block.appendChild(item);
+      });
+    }
+    contentEl.appendChild(block);
+  });
+
+  function showDay(i) {
+    document.querySelectorAll('.day').forEach((el, idx) => {
+      el.style.display = idx === i ? 'block' : 'none';
+    });
+  }
+
+  document.querySelectorAll('input[name="day"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = parseInt(inp.id.replace('day-', ''), 10);
+      showDay(i);
+    });
+  });
+
+  showDay(getTodayIndex());
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function nowMinutes() {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function parseTime(str) {
+    const [h, m] = str.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function updateClock() {
+    const d = new Date();
+    const clockEl = document.getElementById('clock');
+    if (clockEl) {
+      clockEl.textContent =
+        pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+
+    const dateEl = document.getElementById('date');
+    if (dateEl) {
+      const months = ['января','февраля','марта','апреля','мая','июня',
+                      'июля','августа','сентября','октября','ноября','декабря'];
+      const daysFull = ['воскресенье','понедельник','вторник','среда',
+                        'четверг','пятница','суббота'];
+      dateEl.textContent =
+        daysFull[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()];
+    }
+  }
+
+  function updateNext() {
+    const todayIdx = getTodayIndex();
+    const todayName = DAYS[todayIdx];
+    const dayData = SCHEDULE[todayName] || { bells: [], lessons: [] };
+    const lessons = dayData.lessons;
+    const bells = dayData.bells;
+    const now = nowMinutes();
+
+    function parseBell(str) {
+      const [start, end] = str.split('-');
+      return { start: parseTime(start), end: parseTime(end), startStr: start, endStr: end };
+    }
+
+    let currentIdx = -1;
+    for (let i = 0; i < lessons.length; i++) {
+      if (!bells[i]) continue;
+      const b = parseBell(bells[i]);
+      if (now >= b.start && now < b.end) {
+        currentIdx = i;
+        break;
+      }
+    }
+
+    const nextEl = document.getElementById('next');
+    const dayBlock = document.getElementById('block-' + todayIdx);
+
+    if (dayBlock) {
+      dayBlock.querySelectorAll('.lesson').forEach(el => {
+        el.classList.remove('now', 'past');
+      });
+    }
+
+    if (currentIdx >= 0 && dayBlock) {
+      const variant = getLessonVariant(lessons[currentIdx]);
+      const b = parseBell(bells[currentIdx]);
+      const left = b.end - now;
+      nextEl.innerHTML = `Сейчас: <b>${variant.subject}</b> · до звонка ${left} мин`;
+
+      const items = dayBlock.querySelectorAll('.lesson');
+      items.forEach((el, i) => {
+        if (i < currentIdx) el.classList.add('past');
+        if (i === currentIdx) el.classList.add('now');
+      });
+    } else if (dayBlock) {
+      let nextIdx = -1;
+      for (let i = 0; i < lessons.length; i++) {
+        if (!bells[i]) continue;
+        const b = parseBell(bells[i]);
+        if (b.start > now) {
+          nextIdx = i;
+          break;
+        }
+      }
+
+      const items = dayBlock.querySelectorAll('.lesson');
+      items.forEach((el, i) => {
+        if (i < (nextIdx === -1 ? lessons.length : nextIdx)) el.classList.add('past');
+      });
+
+      if (nextIdx >= 0) {
+        const variant = getLessonVariant(lessons[nextIdx]);
+        const b = parseBell(bells[nextIdx]);
+        const left = b.start - now;
+        const hours = Math.floor(left / 60);
+        const mins = left % 60;
+        const leftStr = hours > 0 ? `${hours} ч ${mins} мин` : `${mins} мин`;
+        nextEl.innerHTML = `Следующий: <b>${variant.subject}</b> · в ${b.startStr} · через ${leftStr}`;
+      } else {
+        nextEl.innerHTML = 'Уроки закончились. Отдыхай!';
+      }
+    } else {
+      nextEl.innerHTML = 'Сегодня уроков нет.';
+    }
+  }
+
+  updateClock();
+  updateNext();
+  setInterval(updateClock, 1000);
+  setInterval(updateNext, 1000);
+</script>
+
+<script>
+  // ============================================
+  // ТЕМА И АКЦЕНТ
+  // ============================================
+  const themeBtn = document.getElementById('themeBtn');
+  const paletteBtn = document.getElementById('paletteBtn');
+  const palette = document.getElementById('palette');
+  const themeColorMeta = document.getElementById('themeColorMeta');
+
+  const savedDark = localStorage.getItem('theme-dark') === '1';
+  const savedAccent = localStorage.getItem('theme-accent');
+  const savedDeep = localStorage.getItem('theme-deep');
+
+  if (savedDark) {
+    document.body.classList.add('dark');
+    themeBtn.textContent = '☀️';
+  }
+  if (savedAccent) {
+    document.documentElement.style.setProperty('--accent', savedAccent);
+    if (themeColorMeta) themeColorMeta.setAttribute('content', savedAccent);
+  }
+  if (savedDeep) {
+    document.documentElement.style.setProperty('--accent-deep', savedDeep);
+  }
+
+  if (savedAccent) {
+    document.querySelectorAll('.color-dot').forEach(dot => {
+      if (dot.dataset.accent === savedAccent) dot.classList.add('active');
+    });
+  }
+
+  themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    themeBtn.textContent = isDark ? '☀️' : '🌙';
+    localStorage.setItem('theme-dark', isDark ? '1' : '0');
+  });
+
+  paletteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    palette.classList.toggle('open');
+  });
+
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      const accent = dot.dataset.accent;
+      const deep = dot.dataset.deep;
+
+      document.documentElement.style.setProperty('--accent', accent);
+      document.documentElement.style.setProperty('--accent-deep', deep);
+      if (themeColorMeta) themeColorMeta.setAttribute('content', accent);
+
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+
+      localStorage.setItem('theme-accent', accent);
+      localStorage.setItem('theme-deep', deep);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!palette.contains(e.target) && e.target !== paletteBtn) {
+      palette.classList.remove('open');
+    }
+  });
+
+  // ============================================
+  // МОДАЛЬНОЕ ОКНО ГРУПП
+  // ============================================
+  (function() {
+    const modal = document.getElementById('groupModal');
+    const saveBtn = document.getElementById('groupSave');
+    const groupBtn = document.getElementById('groupBtn');
+
+    const groups = { english: null, native: null };
+
+    const savedEnglish = localStorage.getItem('group-english');
+    const savedNative = localStorage.getItem('group-native');
+
+    if (!savedEnglish || !savedNative) {
+      modal.classList.add('open');
+    } else {
+      groups.english = savedEnglish;
+      groups.native = savedNative;
+    }
+
+    document.querySelectorAll('.group-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.parentElement;
+        const type = parent.dataset.type;
+
+        parent.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+
+        groups[type] = btn.dataset.value;
+
+        if (groups.english && groups.native) {
+          saveBtn.disabled = false;
+        }
+      });
+    });
+
+    saveBtn.addEventListener('click', () => {
+      localStorage.setItem('group-english', groups.english);
+      localStorage.setItem('group-native', groups.native);
+      modal.classList.remove('open');
+      location.reload();
+    });
+
+    if (groups.english) {
+      const btn = document.querySelector(`.group-buttons[data-type="english"] .group-btn[data-value="${groups.english}"]`);
+      if (btn) btn.classList.add('selected');
+    }
+    if (groups.native) {
+      const btn = document.querySelector(`.group-buttons[data-type="native"] .group-btn[data-value="${groups.native}"]`);
+      if (btn) btn.classList.add('selected');
+    }
+    if (groups.english && groups.native) {
+      saveBtn.disabled = false;
+    }
+
+    groupBtn.addEventListener('click', () => {
+      modal.classList.add('open');
+      if (groups.english) {
+        const btn = document.querySelector(`.group-buttons[data-type="english"] .group-btn[data-value="${groups.english}"]`);
+        if (btn) btn.classList.add('selected');
+      }
+      if (groups.native) {
+        const btn = document.querySelector(`.group-buttons[data-type="native"] .group-btn[data-value="${groups.native}"]`);
+        if (btn) btn.classList.add('selected');
+      }
+      saveBtn.disabled = !(groups.english && groups.native);
+    });
+  })();
+</script>
+
+<script>
+  // ============================================
+  // КАЛЬКУЛЯТОР ОЦЕНОК
+  // ============================================
+  (function() {
+    const calcBtn = document.getElementById('calcBtn');
+    const calcModal = document.getElementById('calcModal');
+    const calcClose = document.getElementById('calcClose');
+    const calcClear = document.getElementById('calcClear');
+    const calcAvg = document.getElementById('calcAvg');
+    const calcHistory = document.getElementById('calcHistory');
+
+    let grades = JSON.parse(localStorage.getItem('calc-grades') || '[]');
+
+    function render() {
+      if (grades.length === 0) {
+        calcAvg.textContent = '—';
+        calcHistory.textContent = 'Оценок пока нет';
+      } else {
+        const sum = grades.reduce((a, b) => a + b, 0);
+        const avg = sum / grades.length;
+        calcAvg.textContent = avg.toFixed(2);
+        calcHistory.innerHTML = grades
+          .map(g => `<span class="grade">${g}</span>`)
+          .join('');
+      }
+      localStorage.setItem('calc-grades', JSON.stringify(grades));
+    }
+
+    document.querySelectorAll('.calc-key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const grade = parseInt(btn.dataset.grade, 10);
+        grades.push(grade);
+        render();
+      });
+    });
+
+    calcClear.addEventListener('click', () => {
+      if (grades.length === 0) return;
+      if (confirm('Очистить все оценки?')) {
+        grades = [];
+        render();
+      }
+    });
+
+    calcBtn.addEventListener('click', () => {
+      calcModal.classList.add('open');
+      render();
+    });
+
+    calcClose.addEventListener('click', () => {
+      calcModal.classList.remove('open');
+    });
+
+    render();
+  })();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
