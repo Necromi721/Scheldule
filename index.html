@@ -48,16 +48,16 @@
   /* ============================================
      ПАНЕЛЬ НАСТРОЕК
      ============================================ */
-  .settings {
-    position: fixed;
-    top: 14px;
-    right: 14px;
-    z-index: 100;
-    display: flex;
-    gap: 8px;
-  }
-
-  .btn-icon {
+/*.settings {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}*/
+/*  .btn-icon {
     width: 42px;
     height: 42px;
     border-radius: 50%;
@@ -71,7 +71,7 @@
     box-shadow: 0 4px 12px var(--shadow);
     transition: transform 0.2s, background 0.2s;
     color: var(--text);
-  }
+  }*/
   .btn-icon:hover {
     transform: scale(1.08);
     background: var(--card-soft);
@@ -110,18 +110,103 @@
   /* ============================================
      ОСНОВНОЙ ИНТЕРФЕЙС
      ============================================ */
-  header {
-    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
-    color: #fff;
-    padding: 24px 20px 28px;
-    text-align: center;
-    border-radius: 0 0 24px 24px;
-    box-shadow: 0 4px 16px var(--shadow);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    transition: background 0.3s;
-  }
+/* ============================================
+   ШАПКА
+   ============================================ */
+header {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  padding: 14px 12px 20px;
+  text-align: center;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 16px var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background 0.3s;
+}
+
+.header-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.clock-center {
+  text-align: center;
+  min-width: 0;
+}
+
+.clock {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.date {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.next {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 12px;
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+}
+.next b {
+  font-size: 16px;
+}
+
+/* Кнопки в шапке */
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.22);
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.btn-icon:hover {
+  transform: scale(1.08);
+  background: rgba(255,255,255,0.35);
+}
+.btn-icon:active {
+  transform: scale(0.92);
+}
+
+/* На маленьких экранах — компактнее */
+@media (max-width: 420px) {
+  .clock { font-size: 30px; }
+  .btn-icon { width: 32px; height: 32px; font-size: 15px; }
+  .side-buttons { gap: 4px; }
+  .header-top { gap: 4px; }
+}
+
+@media (max-width: 360px) {
+  .clock { font-size: 26px; }
+  .btn-icon { width: 28px; height: 28px; font-size: 14px; }
+  .date { font-size: 11px; }
+}
   .clock {
     font-size: 42px;
     font-weight: 700;
@@ -453,12 +538,6 @@
 </head>
 <body>
 
-<div class="settings">
-  <button class="btn-icon" id="calcBtn" title="Оценки">🧮</button>
-  <button class="btn-icon" id="groupBtn" title="Группа">👥</button>
-  <button class="btn-icon" id="themeBtn" title="Тема">🌙</button>
-  <button class="btn-icon" id="paletteBtn" title="Цвет">🎨</button>
-</div>
 
 <div class="palette" id="palette">
   <div class="color-dot" data-accent="#4a90d9" data-deep="#2a5c99" style="background:#4a90d9"></div>
@@ -474,8 +553,20 @@
 </div>
 
 <header>
-  <div class="clock" id="clock">--:--:--</div>
-  <div class="date" id="date">Загрузка…</div>
+  <div class="header-top">
+    <div class="side-buttons left">
+      <button class="btn-icon" id="calcBtn" title="Оценки">🧮</button>
+      <button class="btn-icon" id="groupBtn" title="Группа">👥</button>
+    </div>
+    <div class="clock-center">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="date">Загрузка…</div>
+    </div>
+    <div class="side-buttons right">
+      <button class="btn-icon" id="themeBtn" title="Тема">🌙</button>
+      <button class="btn-icon" id="paletteBtn" title="Цвет">🎨</button>
+    </div>
+  </div>
   <div class="next" id="next">—</div>
 </header>
 
