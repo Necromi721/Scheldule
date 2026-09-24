@@ -25,7 +25,7 @@ const SCHEDULE = {
       { subject: 'География'},
       { subject: 'Физика'},
       { subject: 'Биология'},
-      { subject: 'Литература'}
+      { subject: 'Русский'}
     ]
   },
 
